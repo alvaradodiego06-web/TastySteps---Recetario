@@ -1,0 +1,3 @@
+Para poder utilizar la api deben entrar a https://ethiodeploy.com/dashboard/tastysteps
+para poder despertarla solo se debe dar en "Wake Site" y en 30 segundos se despierta
+se duerme despues de 30 min sin recibir nada
