@@ -82,7 +82,8 @@ const route = useRoute();
 const searchText = ref(typeof route.query.search === 'string' ? route.query.search : '');
 const selectedCategory = ref('Todas');
 const categories = ref<string[]>(['Todas']);
-const adminUrl: string = import.meta.env.VITE_ADMIN_URL || 'http://localhost:8080';
+const adminUrl: string = import.meta.env.VITE_ADMIN_URL
+    || `${window.location.protocol}//${window.location.hostname}:8080`;
 // ¿Llegó desde el panel de Vue? (Vue añade ?desde=admin al enlace); se recuerda en esta pestaña
 if (new URLSearchParams(window.location.search).get('desde') === 'admin') {
     sessionStorage.setItem('desde_panel', '1');

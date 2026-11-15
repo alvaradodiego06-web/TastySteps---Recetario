@@ -62,7 +62,7 @@
       style="margin-bottom: 15px;" />
     <br>
 
-    <p v-if="error" style="color: red; white-space: pre-line;">{{ error }}</p>
+    <p v-if="error" ref="alerta" class="rp-alert">{{ error }}</p>
 
     <button @click="guardar" :disabled="guardando"
       style="background: #2e7d32; color: white; padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer;">
@@ -103,17 +103,36 @@ export default {
       }
     };
   },
-  async mounted() {
-    try {
-      const [c, i] = await Promise.all([api.get('/categorias'), api.get('/ingredientes')]);
-      this.categorias = c.data;
-      this.ingredientes = i.data;
-    } catch (e) {
-      console.error(e);
-      this.error = 'No se pudieron cargar las categorías e ingredientes.';
-    }
+  mounted() {
+    this.cargarCatalogos();
   },
   methods: {
+    mostrarError(texto) {
+      this.error = texto;
+      // Lleva la pantalla al aviso (en el celular quedaba fuera de vista)
+      this.$nextTick(() => {
+        const el = this.$refs.alerta;
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    },
+    async cargarCatalogos() {
+      this.error = '';
+      try {
+        const c = await api.get('/categorias');
+        this.categorias = c.data;
+      } catch (e) {
+        console.error('Categorías:', e);
+        this.error = 'No se pudieron cargar las categorías. ' +
+          (e.response ? 'Código ' + e.response.status : 'Sin respuesta del servidor (red o CORS).');
+      }
+      try {
+        const i = await api.get('/ingredientes');
+        this.ingredientes = i.data;
+      } catch (e) {
+        console.error('Ingredientes:', e);
+        this.error += (this.error ? '\n' : '') + 'No se pudieron cargar los ingredientes.';
+      }
+    },
     async agregarIngrediente() {
       const nombre = this.nuevoIngrediente.trim();
       if (!nombre) return;
@@ -127,11 +146,19 @@ export default {
         }
         this.nuevoIngrediente = '';
       } catch (e) {
-        this.error = 'No se pudo agregar el ingrediente.';
+        this.mostrarError('No se pudo agregar el ingrediente. ' +
+          (e.response ? 'Código ' + e.response.status : 'Sin respuesta del servidor.'));
       }
     },
     async guardar() {
       this.error = '';
+
+      const pasosLimpios = this.pasos.map(p => p.trim()).filter(p => p);
+      if (!this.form.nombre_platillo.trim()) return this.mostrarError('Escribe el nombre del platillo.');
+      if (!this.form.id_categoria) return this.mostrarError('Selecciona una categoría.');
+      if (this.ingredientesSel.length === 0) return this.mostrarError('Selecciona al menos un ingrediente.');
+      if (pasosLimpios.length === 0) return this.mostrarError('Escribe al menos un paso.');
+
       this.guardando = true;
 
       // La API recibe multipart/form-data (por la imagen)
@@ -140,7 +167,7 @@ export default {
         if (valor !== '' && valor !== null) fd.append(clave, valor);
       });
       this.ingredientesSel.forEach(id => fd.append('ingredientes[]', id));
-      this.pasos.filter(p => p.trim()).forEach(p => fd.append('pasos[]', p.trim()));
+      pasosLimpios.forEach(p => fd.append('pasos[]', p));
       if (this.imagen) fd.append('imagen', this.imagen);
 
       try {
@@ -148,9 +175,10 @@ export default {
         this.$router.push('/recetas');
       } catch (e) {
         const errores = e.response && e.response.data && e.response.data.errors;
-        this.error = errores
+        this.mostrarError(errores
           ? Object.values(errores).flat().join('\n')
-          : (e.response && e.response.data && e.response.data.message) || 'No se pudo guardar la receta.';
+          : (e.response && e.response.data && (e.response.data.mensaje || e.response.data.message))
+          || 'No se pudo guardar la receta.');
       } finally {
         this.guardando = false;
       }

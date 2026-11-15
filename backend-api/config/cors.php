@@ -20,7 +20,7 @@ return [
         array_map('trim', explode(',', env('CORS_ALLOWED_ORIGINS', '')))
     ))),
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => ['#^http://(192\.168|10\.\d{1,3}|172\.(1[6-9]|2\d|3[01]))\.\d{1,3}\.\d{1,3}:(8080|8100)$#',],
 
     'allowed_headers' => ['*'],
 
